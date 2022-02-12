@@ -30,13 +30,12 @@ func main()  {
 }
 
 func doUnary(c calculatorpb.CalculatorServiceClient)  {
-	req := &calculatorpb.CalculatorRequest{
-		Calculating: &calculatorpb.Calculating{
+	req := &calculatorpb.SumRequest{
 		FirstNumber:  3,
 		SecondNumber: 10,
-	}}
+	}
 
-	res, err := c.Calculator(context.Background(), req)
+	res, err := c.Sum(context.Background(), req)
 	if err != nil {
 		log.Fatalf("Issue with calculator rpc: %v", err)
 	}

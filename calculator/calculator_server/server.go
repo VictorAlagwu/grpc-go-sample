@@ -13,12 +13,12 @@ type server struct {
 	calculatorpb.UnimplementedCalculatorServiceServer
 }
 
-func (*server) Calculator(ctx context.Context, req *calculatorpb.CalculatorRequest) (*calculatorpb.CalculatorResponse, error) {
+func (*server) Sum(ctx context.Context, req *calculatorpb.SumRequest) (*calculatorpb.SumResponse, error) {
 	fmt.Printf("A request has been made %v", req)
-	firstNumber := req.GetCalculating().GetFirstNumber()
-	secondNumber := req.GetCalculating().GetSecondNumber()
+	firstNumber := req.GetFirstNumber()
+	secondNumber := req.GetSecondNumber()
 	result := firstNumber + secondNumber
-	res := &calculatorpb.CalculatorResponse{
+	res := &calculatorpb.SumResponse{
 		Result: result,
 	}
 	return res, nil
