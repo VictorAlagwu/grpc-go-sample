@@ -7,6 +7,8 @@ import (
 	"grpc-go-sample/calculator/calculatorpb"
 	"log"
 	"net"
+	"strconv"
+	"time"
 )
 
 type server struct {
@@ -22,6 +24,31 @@ func (*server) Sum(ctx context.Context, req *calculatorpb.SumRequest) (*calculat
 		Result: result,
 	}
 	return res, nil
+}
+
+func (*server) PrimeNumberDecomposition(
+	req *calculatorpb.PrimeNumberDecompositionRequest, stream calculatorpb.CalculatorService_PrimeNumberDecompositionServer) error {
+	value := req.GetValue()
+	var evenNumber int32
+	evenNumber = 2
+
+	for value > 1 {
+		if value % evenNumber == 0 {
+			result := strconv.Itoa(int(evenNumber))
+			res := &calculatorpb.PrimeNumberDecompositionResponse{
+				Result: result,
+			}
+			err := stream.Send(res)
+			if err != nil {
+				return err
+			}
+			time.Sleep(1000 * time.Millisecond)
+			value = value / evenNumber
+		} else {
+			evenNumber = evenNumber + 1
+		}
+	}
+	return nil
 }
 
 func main() {
