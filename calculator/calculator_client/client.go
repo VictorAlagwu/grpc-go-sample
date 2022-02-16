@@ -7,6 +7,7 @@ import (
 	"grpc-go-sample/calculator/calculatorpb"
 	"io"
 	"log"
+	"time"
 )
 
 func main()  {
@@ -28,7 +29,8 @@ func main()  {
 	c := calculatorpb.NewCalculatorServiceClient(conn)
 
 	//doUnary(c)
-	doServerStream(c)
+	//doServerStream(c)
+	doClientStream(c)
 }
 
 func doUnary(c calculatorpb.CalculatorServiceClient)  {
@@ -66,4 +68,38 @@ func doServerStream(c calculatorpb.CalculatorServiceClient) {
 		}
 		log.Printf("Response from PrimeNumberDecomposition: %v", msg.GetResult())
 	}
+}
+
+func doClientStream(c calculatorpb.CalculatorServiceClient) {
+	requests := []*calculatorpb.ComputeAverageRequest{
+		{
+			Value: 1,
+		}, {
+			Value: 2,
+		}, {
+			Value: 3,
+		}, {
+			Value: 4,
+		},
+	}
+
+	stream, err := c.ComputeAverage(context.Background())
+
+	if err != nil {
+		log.Fatalf("Issue with compute average")
+	}
+
+	for _, req := range requests {
+		fmt.Printf("Sending req: %v\n", req)
+		err := stream.Send(req)
+		if err != nil {
+			log.Fatalf("Error while reading single stream: %v", err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	res, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("Error while receiving stream: %v", err)
+	}
+	fmt.Printf("Compute Average Response: %v\n", res)
 }

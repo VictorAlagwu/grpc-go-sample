@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"google.golang.org/grpc"
 	"grpc-go-sample/calculator/calculatorpb"
+	"io"
 	"log"
 	"net"
 	"strconv"
 	"time"
+
+	"google.golang.org/grpc"
 )
 
 type server struct {
@@ -47,6 +49,30 @@ func (*server) PrimeNumberDecomposition(
 		} else {
 			evenNumber = evenNumber + 1
 		}
+	}
+	return nil
+}
+
+func (*server) ComputeAverage(stream calculatorpb.CalculatorService_ComputeAverageServer) error {
+	fmt.Printf("Invoking Compute Average\n")
+	var result float64
+	totalSum := 0
+	result = 0
+	count := 0
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			result = float64(totalSum) / float64(count)
+			return stream.SendAndClose(&calculatorpb.ComputeAverageResponse{
+				Result: result,
+			})
+		}
+		if err != nil {
+			log.Fatalf("Error reading client stream: %v", err)
+		}
+		count++
+		value := req.GetValue()
+		totalSum += int(value)
 	}
 	return nil
 }
