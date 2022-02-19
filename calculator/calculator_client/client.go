@@ -30,7 +30,8 @@ func main()  {
 
 	//doUnary(c)
 	//doServerStream(c)
-	doClientStream(c)
+	//doClientStream(c)
+	doBiDiStreaming(c)
 }
 
 func doUnary(c calculatorpb.CalculatorServiceClient)  {
@@ -102,4 +103,63 @@ func doClientStream(c calculatorpb.CalculatorServiceClient) {
 		log.Fatalf("Error while receiving stream: %v", err)
 	}
 	fmt.Printf("Compute Average Response: %v\n", res)
+}
+
+func doBiDiStreaming(c calculatorpb.CalculatorServiceClient) {
+	fmt.Printf("Send Client Request on Bi-directional Streaming")
+	requests := []*calculatorpb.FindMaximumRequest{
+		{
+			Value: 1,
+		}, {
+			Value: 5,
+		}, {
+			Value: 3,
+		}, {
+			Value: 6,
+		}, {
+			Value: 2,
+		}, {
+			Value: 20,
+		},
+	}
+	stream, err := c.FindMaximum(context.Background())
+	if err != nil {
+		log.Fatalf("Error processing bi-di request: %v", err)
+		return
+	}
+
+	processor := make(chan struct{})
+
+	// Send Request to client
+	go func() {
+		for _, req := range requests {
+			fmt.Printf("Processing message: %v\n", req)
+			err := stream.Send(req)
+			if err != nil {
+				return
+			}
+			time.Sleep(1000 * time.Millisecond)
+		}
+		err := stream.CloseSend()
+		if err != nil {
+			return
+		}
+	}()
+
+	// Receive response
+	go func() {
+		for  {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Fatalf("Error when receiving bi-dr response: %v", err)
+			}
+			fmt.Printf("Value: %v\n", res.GetValue())
+		}
+		close(processor)
+	}()
+	// Blocks until channel is resolved
+	<-processor
 }

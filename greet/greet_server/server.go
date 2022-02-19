@@ -65,6 +65,28 @@ func (*server) LongGreet(stream greetpb.GreetService_LongGreetServer) error {
 	
 }
 
+func (*server) GreetEveryone(stream greetpb.GreetService_GreetEveryoneServer) error {
+	fmt.Printf("Starting GreetEveryone service\n")
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			log.Fatalf("End of request")
+		}
+		if err != nil {
+			log.Fatalf("Error reading bi-directional stream: #{err}")
+		}
+		firstName := req.GetGreeting().GetFirstName()
+
+		sendStreamErr := stream.Send(&greetpb.GreetEveryoneResponse{
+			Result: "Hello " + firstName + " \n",
+		})
+		if sendStreamErr != nil {
+			return sendStreamErr
+		}
+	}
+}
+
 func main()  {
 	fmt.Println("In the beginning of GRPC")
 

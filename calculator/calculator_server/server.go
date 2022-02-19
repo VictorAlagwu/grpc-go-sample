@@ -35,7 +35,7 @@ func (*server) PrimeNumberDecomposition(
 	evenNumber = 2
 
 	for value > 1 {
-		if value % evenNumber == 0 {
+		if value%evenNumber == 0 {
 			result := strconv.Itoa(int(evenNumber))
 			res := &calculatorpb.PrimeNumberDecompositionResponse{
 				Result: result,
@@ -74,9 +74,37 @@ func (*server) ComputeAverage(stream calculatorpb.CalculatorService_ComputeAvera
 		value := req.GetValue()
 		totalSum += int(value)
 	}
-	return nil
+
 }
 
+func (*server) FindMaximum(stream calculatorpb.CalculatorService_FindMaximumServer) error {
+	fmt.Printf("Starting Find Maximum Request")
+	var maximumValue int32
+	maximumValue = 0
+	for {
+		req, err := stream.Recv()
+
+		if err == io.EOF {
+			log.Fatalf("End of request")
+		}
+
+		if err != nil {
+			log.Fatalf("Error reading bi-directional stream: #{err}")
+		}
+
+		value := req.Value
+		if value > maximumValue {
+			maximumValue = value
+			sendStreamErr := stream.Send(&calculatorpb.FindMaximumResponse{
+				Value: maximumValue,
+			})
+			if sendStreamErr != nil {
+				return sendStreamErr
+			}
+		}
+
+	}
+}
 func main() {
 	fmt.Println("Thus said the programmer, go forth and render gRPC")
 	lis, err := net.Listen("tcp", "0.0.0.0:50051")
