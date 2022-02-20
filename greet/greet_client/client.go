@@ -8,13 +8,25 @@ import (
 	"log"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/status"
+
 	"google.golang.org/grpc"
 )
 
-func main()  {
+func main() {
 	fmt.Println("Welcome to Greet Client")
 
-	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
+	certFile := "ssl/ca.crt" // Certificate Authority Trust certificate
+	creds, sslErr := credentials.NewClientTLSFromFile(certFile, "")
+	if sslErr != nil {
+		log.Fatalf("Error while loading CA trust certificate: %v", sslErr)
+		return
+	}
+	opts := grpc.WithTransportCredentials(creds)
+
+	conn, err := grpc.Dial("localhost:50051", opts)
 
 	if err != nil {
 		log.Fatalf("Unable to connect to server: %v", err)
@@ -23,7 +35,7 @@ func main()  {
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
 		if err != nil {
-
+			log.Fatalf("Unable to connect to server: %v", err)
 		}
 	}(conn)
 
@@ -34,8 +46,7 @@ func main()  {
 	doBiDiStreaming(c)
 }
 
-
-func doUnary(c greetpb.GreetServiceClient)  {
+func doUnary(c greetpb.GreetServiceClient) {
 	req := &greetpb.GreetRequest{
 		Greeting: &greetpb.Greeting{
 			FirstName:  "Victor",
@@ -49,7 +60,7 @@ func doUnary(c greetpb.GreetServiceClient)  {
 	log.Printf("Response from Greet: %v", res.Result)
 }
 
-func doServerStreaming(c greetpb.GreetServiceClient)  {
+func doServerStreaming(c greetpb.GreetServiceClient) {
 	req := &greetpb.GreetManyTimesRequest{
 		Greeting: &greetpb.Greeting{
 			FirstName:  "Victor",
@@ -60,7 +71,7 @@ func doServerStreaming(c greetpb.GreetServiceClient)  {
 	if err != nil {
 		log.Fatalf("Issue with Greet rpc: %v", err)
 	}
-	for  {
+	for {
 		msg, err := resStream.Recv()
 		if err == io.EOF {
 			break
@@ -73,26 +84,26 @@ func doServerStreaming(c greetpb.GreetServiceClient)  {
 	}
 }
 
-func doClientStream(c greetpb.GreetServiceClient)  {
+func doClientStream(c greetpb.GreetServiceClient) {
 	requests := []*greetpb.LongGreetRequest{
 		{
 			Greeting: &greetpb.Greeting{
-				FirstName:  "Victor",
+				FirstName: "Victor",
 			},
 		},
 		{
 			Greeting: &greetpb.Greeting{
-				FirstName:  "Cen man",
+				FirstName: "Cen man",
 			},
 		},
 		{
 			Greeting: &greetpb.Greeting{
-				FirstName:  "Dan fo",
+				FirstName: "Dan fo",
 			},
 		},
 		{
 			Greeting: &greetpb.Greeting{
-				FirstName:  "Qui",
+				FirstName: "Qui",
 			},
 		},
 	}
@@ -121,22 +132,22 @@ func doBiDiStreaming(c greetpb.GreetServiceClient) {
 	requests := []*greetpb.GreetEveryoneRequest{
 		{
 			Greeting: &greetpb.Greeting{
-				FirstName:  "Victor",
+				FirstName: "Victor",
 			},
 		},
 		{
 			Greeting: &greetpb.Greeting{
-				FirstName:  "Cen man",
+				FirstName: "Cen man",
 			},
 		},
 		{
 			Greeting: &greetpb.Greeting{
-				FirstName:  "Dan fo",
+				FirstName: "Dan fo",
 			},
 		},
 		{
 			Greeting: &greetpb.Greeting{
-				FirstName:  "Qui",
+				FirstName: "Qui",
 			},
 		},
 	}
@@ -155,13 +166,13 @@ func doBiDiStreaming(c greetpb.GreetServiceClient) {
 			fmt.Printf("Sending message: %v\n", req)
 			err := stream.Send(req)
 			if err != nil {
-				return 
+				return
 			}
 			time.Sleep(1000 * time.Millisecond)
 		}
 		err := stream.CloseSend()
 		if err != nil {
-			return 
+			return
 		}
 	}()
 
@@ -183,4 +194,30 @@ func doBiDiStreaming(c greetpb.GreetServiceClient) {
 
 	// Block until everything is done
 	<-waitc
+}
+
+func doUnaryWithDeadline(c greetpb.GreetServiceClient) {
+	req := &greetpb.GreetWithDeadlineRequest{
+		Greeting: &greetpb.Greeting{
+			FirstName:  "Victor",
+			SecondName: "A",
+		},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	res, err := c.GreetWithDeadline(ctx, req)
+	if err != nil {
+		statusErr, ok := status.FromError(err)
+		if ok {
+			if statusErr.Code() == codes.DeadlineExceeded {
+				fmt.Println("Timeout was hit! Deadline exceeded")
+			} else {
+				fmt.Printf("Unexpected error: %v\n", statusErr)
+			}
+		} else {
+			log.Fatalf("Issue with GreetWithDeadline rpc: %v", err)
+		}
+	}
+	log.Printf("Response from GreetWithDeadline: %v", res.Result)
 }

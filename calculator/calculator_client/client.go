@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 	"grpc-go-sample/calculator/calculatorpb"
 	"io"
 	"log"
@@ -31,7 +32,8 @@ func main()  {
 	//doUnary(c)
 	//doServerStream(c)
 	//doClientStream(c)
-	doBiDiStreaming(c)
+	//doBiDiStreaming(c)
+	doSquareRoot(c)
 }
 
 func doUnary(c calculatorpb.CalculatorServiceClient)  {
@@ -163,3 +165,31 @@ func doBiDiStreaming(c calculatorpb.CalculatorServiceClient) {
 	// Blocks until channel is resolved
 	<-processor
 }
+
+func doSquareRoot(c calculatorpb.CalculatorServiceClient) {
+	fmt.Printf("Send square root request")
+	number := int32(10)
+	doErrorUnary(c, int32(-2))
+	doErrorUnary(c, number)
+}
+
+func doErrorUnary(c calculatorpb.CalculatorServiceClient, number int32) {
+	req := &calculatorpb.SquareRootRequest{
+		Value: number,
+	}
+
+	res, err := c.SquareRoot(context.Background(), req)
+	if err != nil {
+		respErr, ok := status.FromError(err)
+		if ok {
+			fmt.Println(respErr.Message())
+			fmt.Println(respErr.Code())
+		} else {
+
+			log.Fatalf("Error running square root program: %v", err)
+		}
+	}
+
+	fmt.Printf("Result: %v : %v", number, res.Root)
+}
+

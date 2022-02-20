@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"grpc-go-sample/calculator/calculatorpb"
 	"io"
 	"log"
+	"math"
 	"net"
 	"strconv"
 	"time"
@@ -105,6 +108,23 @@ func (*server) FindMaximum(stream calculatorpb.CalculatorService_FindMaximumServ
 
 	}
 }
+
+func (*server)SquareRoot(ctx context.Context, req *calculatorpb.SquareRootRequest) (*calculatorpb.SquareRootResponse, error) {
+	fmt.Println("Square root RPC request received")
+	number := req.GetValue()
+	
+	if number < 0 {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			fmt.Sprintf("Received a negative number"),
+			)
+	}
+	res := &calculatorpb.SquareRootResponse{
+		Root: math.Sqrt(float64(number)),
+	}
+	return res, nil
+}
+
 func main() {
 	fmt.Println("Thus said the programmer, go forth and render gRPC")
 	lis, err := net.Listen("tcp", "0.0.0.0:50051")
